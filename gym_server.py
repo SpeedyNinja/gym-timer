@@ -46,7 +46,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # body_part 컬럼 마이그레이션 확인
         cursor.execute("""
             SELECT column_name FROM information_schema.columns 
             WHERE table_name='gym_logs' AND column_name='body_part'
@@ -133,17 +132,17 @@ HTML_TEMPLATE = """
         .week-day-cell {
             background-color: #242426;
             border-radius: 10px;
-            padding: 10px 2px;
+            padding: 8px 2px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             min-height: 75px;
         }
         .week-day-name { font-size: 11px; color: #8E8E93; font-weight: 600; }
         .week-day-date { font-size: 13px; font-weight: 700; }
         .week-day-time { font-size: 10px; font-weight: 700; color: #FF9F0A; text-align: center; }
-        .badge-part { font-size: 9px; background-color: rgba(255, 159, 10, 0.25); color: #FF9F0A; padding: 1px 3px; border-radius: 4px; white-space: nowrap; max-width: 95%; overflow: hidden; text-overflow: ellipsis; }
+        .badge-part { font-size: 8px; background-color: rgba(255, 159, 10, 0.25); color: #FF9F0A; padding: 1px 3px; border-radius: 4px; white-space: nowrap; max-width: 95%; overflow: hidden; text-overflow: ellipsis; }
 
         /* 월간 뷰 */
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #8E8E93; margin-bottom: 8px; font-weight: 600; }
@@ -166,7 +165,7 @@ HTML_TEMPLATE = """
         .day-num { font-size: 11px; font-weight: 600; margin-bottom: 1px; }
         .day-time { font-size: 9px; font-weight: 700; color: #FFFFFF; line-height: 1; }
 
-        /* 히트맵 레벨 */
+        /* 히트맵 색상 단계 */
         .level-1 { background-color: rgba(255, 159, 10, 0.25) !important; color: #FFD60A; }
         .level-2 { background-color: rgba(255, 159, 10, 0.55) !important; color: #FFFFFF; }
         .level-3 { background-color: #FF9F0A !important; color: #121212 !important; }
@@ -218,7 +217,7 @@ HTML_TEMPLATE = """
         <button id="tab-month" class="tab-btn" onclick="switchTab('month')">월간</button>
     </div>
 
-    <!-- 통계 요약 -->
+    <!-- 통계 카드 -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="label">이번 주 총 운동</div>
@@ -269,7 +268,7 @@ HTML_TEMPLATE = """
                             <span class="day-time">{{ item.time_str }}</span>
                         {% endif %}
                         {% if item.part %}
-                            <span class="badge-part" style="font-size:8px;">{{ item.part }}</span>
+                            <span class="badge-part">{{ item.part }}</span>
                         {% endif %}
                     </div>
                 {% endif %}
@@ -296,10 +295,10 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- 부위 선택 칩 그룹 -->
+                <!-- 부위 선택 칩: 삼두, 이두, 복근 반영 -->
                 <div class="part-chip-group">
                     {% set parts = log[6].split(', ') if log[6] else [] %}
-                    {% for p in ['가슴', '등', '하체', '어깨', '팔', '유산소'] %}
+                    {% for p in ['가슴', '등', '하체', '어깨', '삼두', '이두', '복근', '유산소'] %}
                     <span class="part-chip {% if p in parts %}selected{% endif %}" 
                           onclick="togglePart({{ log[0] }}, '{{ p }}', this)">
                         {{ p }}
@@ -333,12 +332,11 @@ HTML_TEMPLATE = """
             }
         }
 
-        // 부위 토글 API 호출
+        // 부위 토글 API
         function togglePart(logId, partName, element) {
             const isSelected = element.classList.contains('selected');
             const action = isSelected ? 'remove' : 'add';
 
-            // 즉각적인 UI 반영
             element.classList.toggle('selected');
 
             fetch(`/gym/update-part/${logId}`, {
@@ -349,7 +347,6 @@ HTML_TEMPLATE = """
             .then(res => res.json())
             .then(data => {
                 if (data.status !== 'success') {
-                    // 실패 시 롤백
                     element.classList.toggle('selected');
                 }
             })
@@ -358,7 +355,7 @@ HTML_TEMPLATE = """
             });
         }
 
-        // 아래로 당겨 새로고침 (Pull to Refresh)
+        // Pull to refresh
         let startY = 0;
         window.addEventListener('touchstart', function(e) {
             if (window.scrollY === 0) startY = e.touches[0].pageY;
@@ -406,11 +403,9 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 최근 전체 로그 조회 (id, date, start_time, end_time, duration, duration_minutes, body_part)
     cursor.execute("SELECT id, date, start_time, end_time, duration, duration_minutes, COALESCE(body_part, '') FROM gym_logs ORDER BY id DESC")
     logs = cursor.fetchall()
 
-    # 날짜별 통계 및 부위 취합 맵
     date_minutes_map = {}
     date_parts_map = {}
     for log in logs:
@@ -482,10 +477,10 @@ def dashboard():
 
 @app.route("/gym/update-part/<int:log_id>", methods=["POST"])
 def update_body_part(log_id):
-    """웹 화면에서 부위 칩 터치 시 비동기 업데이트 API"""
+    """부위 토글 API"""
     data = request.get_json() or {}
     part = data.get("part")
-    action = data.get("action")  # 'add' or 'remove'
+    action = data.get("action")
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -523,7 +518,7 @@ def update_body_part(log_id):
 
 @app.route("/gym/delete/<int:log_id>", methods=["POST"])
 def delete_log(log_id):
-    """운동 기록 삭제 API"""
+    """기록 삭제 API"""
     conn = get_db_connection()
     cursor = conn.cursor()
     if DATABASE_URL:
