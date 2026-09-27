@@ -142,7 +142,8 @@ HTML_TEMPLATE = """
         .week-day-name { font-size: 11px; color: #8E8E93; font-weight: 600; }
         .week-day-date { font-size: 13px; font-weight: 700; }
         .week-day-time { font-size: 10px; font-weight: 700; color: #FF9F0A; text-align: center; }
-        .badge-part { font-size: 8px; background-color: rgba(255, 159, 10, 0.25); color: #FF9F0A; padding: 1px 3px; border-radius: 4px; white-space: nowrap; max-width: 95%; overflow: hidden; text-overflow: ellipsis; }
+        .badge-part { font-size: 8px; background-color: rgba(255, 159, 10, 0.25); color: #FF9F0A; padding: 1px 3px; border-radius: 4px; white-space: nowrap; max-width: 95%; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+        .badge-part:empty { display: none; }
 
         /* 월간 뷰 */
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #8E8E93; margin-bottom: 8px; font-weight: 600; }
@@ -165,7 +166,7 @@ HTML_TEMPLATE = """
         .day-num { font-size: 11px; font-weight: 600; margin-bottom: 1px; }
         .day-time { font-size: 9px; font-weight: 700; color: #FFFFFF; line-height: 1; }
 
-        /* 히트맵 색상 단계 */
+        /* 히트맵 레벨 */
         .level-1 { background-color: rgba(255, 159, 10, 0.25) !important; color: #FFD60A; }
         .level-2 { background-color: rgba(255, 159, 10, 0.55) !important; color: #FFFFFF; }
         .level-3 { background-color: #FF9F0A !important; color: #121212 !important; }
@@ -217,7 +218,7 @@ HTML_TEMPLATE = """
         <button id="tab-month" class="tab-btn" onclick="switchTab('month')">월간</button>
     </div>
 
-    <!-- 통계 카드 -->
+    <!-- 통계 요약 -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="label">이번 주 총 운동</div>
@@ -241,9 +242,7 @@ HTML_TEMPLATE = """
                 <span class="week-day-name">{{ d.day_name }}</span>
                 <span class="week-day-date">{{ d.day_num }}</span>
                 <span class="week-day-time">{{ d.time_str if d.time_str else '-' }}</span>
-                {% if d.part %}
-                    <span class="badge-part">{{ d.part }}</span>
-                {% endif %}
+                <span class="badge-part" data-part-date="{{ d.date_str }}">{{ d.part }}</span>
             </div>
             {% endfor %}
         </div>
@@ -267,9 +266,7 @@ HTML_TEMPLATE = """
                         {% if item.time_str %}
                             <span class="day-time">{{ item.time_str }}</span>
                         {% endif %}
-                        {% if item.part %}
-                            <span class="badge-part">{{ item.part }}</span>
-                        {% endif %}
+                        <span class="badge-part" data-part-date="{{ item.date_str }}" style="font-size:8px;">{{ item.part }}</span>
                     </div>
                 {% endif %}
             {% endfor %}
@@ -281,7 +278,7 @@ HTML_TEMPLATE = """
     <div class="log-list">
         {% if logs %}
             {% for log in logs %}
-            <div class="log-item" id="log-card-{{ log[0] }}">
+            <div class="log-item" id="log-card-{{ log[0] }}" data-card-date="{{ log[1] }}">
                 <div class="log-header">
                     <div>
                         <div class="log-date">{{ log[1] }}</div>
@@ -295,12 +292,12 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- 부위 선택 칩: 삼두, 이두, 복근 반영 -->
+                <!-- 부위 선택 칩 그룹 -->
                 <div class="part-chip-group">
                     {% set parts = log[6].split(', ') if log[6] else [] %}
                     {% for p in ['가슴', '등', '하체', '어깨', '삼두', '이두', '복근', '유산소'] %}
                     <span class="part-chip {% if p in parts %}selected{% endif %}" 
-                          onclick="togglePart({{ log[0] }}, '{{ p }}', this)">
+                          onclick="togglePart({{ log[0] }}, '{{ p }}', '{{ log[1] }}', this)">
                         {{ p }}
                     </span>
                     {% endfor %}
@@ -332,13 +329,34 @@ HTML_TEMPLATE = """
             }
         }
 
-        // 부위 토글 API
-        function togglePart(logId, partName, element) {
+        // 해당 날짜의 모든 선택된 부위를 수집해 달력 배지 텍스트를 실시간 갱신하는 함수
+        function refreshDateBadge(targetDate) {
+            const dayCards = document.querySelectorAll(`.log-item[data-card-date="${targetDate}"]`);
+            const collectedParts = new Set();
+            dayCards.forEach(card => {
+                const selectedChips = card.querySelectorAll('.part-chip.selected');
+                selectedChips.forEach(chip => collectedParts.add(chip.textContent.trim()));
+            });
+
+            const mergedText = Array.from(collectedParts).join(', ');
+            const badges = document.querySelectorAll(`[data-part-date="${targetDate}"]`);
+            badges.forEach(badge => {
+                badge.textContent = mergedText;
+            });
+        }
+
+        // 부위 토글 API 및 화면 즉각 반영
+        function togglePart(logId, partName, logDate, element) {
             const isSelected = element.classList.contains('selected');
             const action = isSelected ? 'remove' : 'add';
 
+            // 1. 칩 즉시 토글
             element.classList.toggle('selected');
 
+            // 2. 주간/월간 달력 날짜 타일 배지 즉시 갱신 (새로고침 불필요)
+            refreshDateBadge(logDate);
+
+            // 3. 백엔드 DB 저장
             fetch(`/gym/update-part/${logId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -347,15 +365,18 @@ HTML_TEMPLATE = """
             .then(res => res.json())
             .then(data => {
                 if (data.status !== 'success') {
+                    // DB 저장 실패 시 원복
                     element.classList.toggle('selected');
+                    refreshDateBadge(logDate);
                 }
             })
             .catch(() => {
                 element.classList.toggle('selected');
+                refreshDateBadge(logDate);
             });
         }
 
-        // Pull to refresh
+        // 아래로 당겨 새로고침 (Pull to Refresh)
         let startY = 0;
         window.addEventListener('touchstart', function(e) {
             if (window.scrollY === 0) startY = e.touches[0].pageY;
@@ -434,6 +455,7 @@ def dashboard():
         week_days.append({
             "day_name": day_names[i],
             "day_num": day_date.strftime("%d"),
+            "date_str": day_str,
             "time_str": format_minutes_short(m),
             "level": get_heat_level(m),
             "part": date_parts_map.get(day_str, ""),
@@ -448,13 +470,14 @@ def dashboard():
 
     for date_obj in cal.itermonthdates(now_kst.year, now_kst.month):
         if date_obj.month != now_kst.month:
-            month_calendar.append({"day": 0})
+            month_calendar.append({"day": 0, "date_str": ""})
         else:
             d_str = date_obj.strftime("%Y-%m-%d")
             m = date_minutes_map.get(d_str, 0)
             monthly_total_minutes += m
             month_calendar.append({
                 "day": date_obj.day,
+                "date_str": d_str,
                 "time_str": format_minutes_short(m),
                 "level": get_heat_level(m),
                 "part": date_parts_map.get(d_str, ""),
