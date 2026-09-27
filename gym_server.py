@@ -107,28 +107,30 @@ HTML_TEMPLATE = """
             font-weight: 600;
         }
         
-        /* 탭 바 */
         .tab-bar { display: flex; background-color: #1C1C1E; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
         .tab-btn { flex: 1; text-align: center; padding: 8px 0; border: none; background: transparent; color: #8E8E93; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; }
         .tab-btn.active { background-color: #FF9F0A; color: #121212; }
         
         /* 통계 요약 카드 */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .stat-card { background-color: #1C1C1E; padding: 14px 12px; border-radius: 14px; text-align: center; border: 1px solid #2C2C2E; }
-        .stat-card .label { font-size: 12px; color: #8E8E93; margin-bottom: 4px; }
-        .stat-card .value { font-size: 18px; font-weight: 700; color: #30D158; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+        .stat-card { background-color: #1C1C1E; padding: 12px 6px; border-radius: 14px; text-align: center; border: 1px solid #2C2C2E; }
+        .stat-card .label { font-size: 11px; color: #8E8E93; margin-bottom: 4px; }
+        .stat-card .value { font-size: 15px; font-weight: 700; color: #30D158; }
         
-        /* 캘린더 영역 (크기 고정) */
         .calendar-card { background-color: #1C1C1E; border-radius: 16px; padding: 16px; border: 1px solid #2C2C2E; margin-bottom: 24px; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-weight: 700; font-size: 16px; }
-        .calendar-hint { font-size: 11px; color: #8E8E93; font-weight: 400; }
         
-        /* 주간 뷰 (고정 타일) */
+        /* 네비게이터 */
+        .month-nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .nav-btn { background: #2C2C2E; border: 1px solid #3A3A3C; color: #FFFFFF; padding: 5px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+        .date-select-group { display: flex; gap: 6px; }
+        .select-box { background: #2C2C2E; color: #FFFFFF; border: 1px solid #3A3A3C; padding: 4px 6px; border-radius: 8px; font-size: 14px; font-weight: 600; outline: none; }
+        
+        /* 주간 뷰 */
         .weekly-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
         .week-day-cell {
             background-color: #242426;
             border-radius: 10px;
-            padding: 10px 2px;
+            padding: 8px 2px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -137,12 +139,11 @@ HTML_TEMPLATE = """
             height: 68px;
             cursor: pointer;
         }
-        .week-day-cell:active { transform: scale(0.96); }
         .week-day-name { font-size: 11px; color: #8E8E93; font-weight: 600; }
         .week-day-date { font-size: 13px; font-weight: 700; }
         .week-day-time { font-size: 10px; font-weight: 700; color: #FF9F0A; text-align: center; }
 
-        /* 월간 뷰 (정사각형 비율 고정) */
+        /* 월간 뷰 */
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #8E8E93; margin-bottom: 8px; font-weight: 600; }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
         .day-cell {
@@ -162,13 +163,11 @@ HTML_TEMPLATE = """
         .day-num { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
         .day-time { font-size: 9px; font-weight: 700; color: #FFFFFF; line-height: 1; }
 
-        /* 열품타 히트맵 레벨 */
         .level-1 { background-color: rgba(255, 159, 10, 0.25) !important; color: #FFD60A; }
         .level-2 { background-color: rgba(255, 159, 10, 0.55) !important; color: #FFFFFF; }
         .level-3 { background-color: #FF9F0A !important; color: #121212 !important; }
         .level-3 .day-time { color: #121212; }
 
-        /* 기록 리스트 */
         .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #E5E5EA; }
         .log-list { display: flex; flex-direction: column; gap: 10px; }
         .log-item { background-color: #1C1C1E; padding: 14px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #2C2C2E; }
@@ -179,7 +178,7 @@ HTML_TEMPLATE = """
         .delete-btn { background-color: #3A1D1D; color: #FF453A; border: 1px solid #5A2727; padding: 5px 9px; font-size: 11px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .empty-log { text-align: center; color: #636366; padding: 20px 0; font-size: 13px; }
 
-        /* 날짜 세부정보 바텀시트 모달 */
+        /* 바텀시트 모달 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -238,7 +237,6 @@ HTML_TEMPLATE = """
         <button class="refresh-btn" onclick="window.location.reload();">🔄 새로고침</button>
     </div>
 
-    <!-- 탭 바 -->
     <div class="tab-bar">
         <button id="tab-week" class="tab-btn active" onclick="switchTab('week')">주간</button>
         <button id="tab-month" class="tab-btn" onclick="switchTab('month')">월간</button>
@@ -247,20 +245,24 @@ HTML_TEMPLATE = """
     <!-- 통계 카드 -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="label">이번 주 총 운동</div>
+            <div class="label">이번 주 운동</div>
             <div class="value">{{ weekly_total }}</div>
         </div>
         <div class="stat-card">
-            <div class="label">이번 달 총 운동</div>
+            <div class="label">이달 출석 일수</div>
+            <div class="value" style="color: #FF9F0A;">{{ monthly_days }}일 출석</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">이달 총 운동</div>
             <div class="value">{{ monthly_total }}</div>
         </div>
     </div>
 
     <!-- 주간 뷰 -->
     <div id="view-week" class="calendar-card">
-        <div class="calendar-header">
-            <span>이번 주 현황</span>
-            <span class="calendar-hint">날짜를 눌러 세부기록 확인</span>
+        <div class="month-nav-bar">
+            <span style="font-weight:700;">이번 주 현황</span>
+            <span style="font-size:12px; color:#8E8E93;">{{ week_range_str }}</span>
         </div>
         <div class="weekly-grid">
             {% for d in week_days %}
@@ -276,9 +278,21 @@ HTML_TEMPLATE = """
 
     <!-- 월간 뷰 -->
     <div id="view-month" class="calendar-card" style="display: none;">
-        <div class="calendar-header">
-            <span>{{ current_month_str }}</span>
-            <span class="calendar-hint">날짜를 눌러 세부기록 확인</span>
+        <div class="month-nav-bar">
+            <button class="nav-btn" onclick="navigateMonth({{ prev_year }}, {{ prev_month }})">◀</button>
+            <div class="date-select-group">
+                <select id="select-year" class="select-box" onchange="jumpToMonth()">
+                    {% for y in range(current_year - 3, current_year + 3) %}
+                    <option value="{{ y }}" {% if y == target_year %}selected{% endif %}>{{ y }}년</option>
+                    {% endfor %}
+                </select>
+                <select id="select-month" class="select-box" onchange="jumpToMonth()">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == target_month %}selected{% endif %}>{{ m }}월</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="nav-btn" onclick="navigateMonth({{ next_year }}, {{ next_month }})">▶</button>
         </div>
         <div class="weekdays">
             <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
@@ -300,7 +314,7 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- 전체 운동 내역 목록 -->
+    <!-- 최근 운동 내역 목록 -->
     <div class="section-title">최근 운동 내역</div>
     <div class="log-list">
         {% if logs %}
@@ -308,7 +322,9 @@ HTML_TEMPLATE = """
             <div class="log-item">
                 <div onclick="openDetailModal('{{ log[1] }}')" style="cursor:pointer; flex: 1;">
                     <div class="log-date">{{ log[1] }}</div>
-                    <div class="log-time">{{ log[2] }} ~ {{ log[3] }}{% if log[6] %} • {{ log[6] }}{% endif %}</div>
+                    <div class="log-time">
+                        {{ log[2] }} ~ {{ log[3] }}<span id="log-part-text-{{ log[0] }}">{% if log[6] %} • {{ log[6] }}{% endif %}</span>
+                    </div>
                 </div>
                 <div class="log-right">
                     <div class="log-duration">{{ log[4] }}</div>
@@ -323,23 +339,25 @@ HTML_TEMPLATE = """
         {% endif %}
     </div>
 
-    <!-- 날짜 세부 기록 및 부위 선택 팝업 (모달) -->
+    <!-- 날짜 세부정보 바텀시트 모달 -->
     <div id="detail-modal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <div class="modal-title" id="modal-date-title">2026-09-27 운동 기록</div>
+                <div class="modal-title" id="modal-date-title">운동 기록</div>
                 <button class="close-btn" onclick="closeModalDirect()">✕</button>
             </div>
-            <div id="modal-body-list">
-                <!-- 자바스크립트로 세부 기록 및 칩 렌더링 -->
-            </div>
+            <div id="modal-body-list"></div>
         </div>
     </div>
 
     <script>
-        // 서버에서 전달받은 로그 데이터 JSON 매핑
         const allLogs = {{ logs_json|safe }};
         const bodyPartsList = ['가슴', '등', '하체', '어깨', '삼두', '이두', '복근', '유산소'];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'month') {
+            switchTab('month');
+        }
 
         function switchTab(type) {
             const tabWeek = document.getElementById('tab-week');
@@ -360,7 +378,16 @@ HTML_TEMPLATE = """
             }
         }
 
-        // 날짜 클릭 시 세부정보 팝업 열기
+        function navigateMonth(year, month) {
+            window.location.href = `/?year=${year}&month=${month}&tab=month`;
+        }
+
+        function jumpToMonth() {
+            const y = document.getElementById('select-year').value;
+            const m = document.getElementById('select-month').value;
+            window.location.href = `/?year=${y}&month=${m}&tab=month`;
+        }
+
         function openDetailModal(dateStr) {
             if (!dateStr) return;
             const modal = document.getElementById('detail-modal');
@@ -402,14 +429,10 @@ HTML_TEMPLATE = """
             modal.style.display = 'flex';
         }
 
-        function closeModal(e) {
-            document.getElementById('detail-modal').style.display = 'none';
-        }
-        function closeModalDirect() {
-            document.getElementById('detail-modal').style.display = 'none';
-        }
+        function closeModal(e) { document.getElementById('detail-modal').style.display = 'none'; }
+        function closeModalDirect() { document.getElementById('detail-modal').style.display = 'none'; }
 
-        // 팝업 내부 부위 토글
+        // 부위 토글 및 최근 내역 텍스트 실시간 반영
         function toggleModalPart(logId, partName, element) {
             const isSelected = element.classList.contains('selected');
             const action = isSelected ? 'remove' : 'add';
@@ -424,9 +447,15 @@ HTML_TEMPLATE = """
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // 메모리 내 데이터 업데이트
+                    // 1. 메모리 객체 업데이트
                     const target = allLogs.find(l => l.id === logId);
                     if (target) target.body_part = data.body_part;
+
+                    // 2. 화면 아래 '최근 운동 내역' 행 텍스트 즉시 변경 (새로고침 불필요)
+                    const logPartSpan = document.getElementById(`log-part-text-${logId}`);
+                    if (logPartSpan) {
+                        logPartSpan.textContent = data.body_part ? ` • ${data.body_part}` : '';
+                    }
                 } else {
                     element.classList.toggle('selected');
                 }
@@ -436,7 +465,6 @@ HTML_TEMPLATE = """
             });
         }
 
-        // 당겨서 새로고침
         let startY = 0;
         window.addEventListener('touchstart', function(e) {
             if (window.scrollY === 0) startY = e.touches[0].pageY;
@@ -479,6 +507,23 @@ def get_heat_level(mins):
 def dashboard():
     now_kst = datetime.now(KST)
     today_str = now_kst.strftime("%Y-%m-%d")
+
+    target_year = request.args.get("year", default=now_kst.year, type=int)
+    target_month = request.args.get("month", default=now_kst.month, type=int)
+
+    if target_month == 1:
+        prev_year = target_year - 1
+        prev_month = 12
+    else:
+        prev_year = target_year
+        prev_month = target_month - 1
+
+    if target_month == 12:
+        next_year = target_year + 1
+        next_month = 1
+    else:
+        next_year = target_year
+        next_month = target_month + 1
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -524,19 +569,22 @@ def dashboard():
             "is_today": (day_str == today_str)
         })
 
-    # 월간 데이터 계산
-    current_month_str = now_kst.strftime("%Y년 %m월")
+    # 월간 데이터 및 순수 출석 일수 계산
     cal = calendar.Calendar(firstweekday=6)
     month_calendar = []
     monthly_total_minutes = 0
+    active_days_set = set()
 
-    for date_obj in cal.itermonthdates(now_kst.year, now_kst.month):
-        if date_obj.month != now_kst.month:
+    for date_obj in cal.itermonthdates(target_year, target_month):
+        if date_obj.month != target_month:
             month_calendar.append({"day": 0, "date_str": ""})
         else:
             d_str = date_obj.strftime("%Y-%m-%d")
             m = date_minutes_map.get(d_str, 0)
-            monthly_total_minutes += m
+            if m > 0:
+                monthly_total_minutes += m
+                active_days_set.add(d_str)
+
             month_calendar.append({
                 "day": date_obj.day,
                 "date_str": d_str,
@@ -554,10 +602,17 @@ def dashboard():
         logs_json=json.dumps(logs_json),
         weekly_total=format_minutes_long(weekly_total_minutes),
         monthly_total=format_minutes_long(monthly_total_minutes),
+        monthly_days=len(active_days_set),
         week_days=week_days,
         week_range_str=week_range_str,
-        current_month_str=current_month_str,
-        month_calendar=month_calendar
+        month_calendar=month_calendar,
+        target_year=target_year,
+        target_month=target_month,
+        current_year=now_kst.year,
+        prev_year=prev_year,
+        prev_month=prev_month,
+        next_year=next_year,
+        next_month=next_month
     )
 
 @app.route("/gym/update-part/<int:log_id>", methods=["POST"])
