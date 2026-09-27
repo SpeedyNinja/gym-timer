@@ -84,15 +84,30 @@ HTML_TEMPLATE = """
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>헬스 타이머 대시보드</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #121212; color: #FFFFFF; padding: 20px 16px; }
-        .header { margin-bottom: 20px; text-align: center; }
-        .header h1 { font-size: 22px; font-weight: 700; color: #4E95FF; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #121212; color: #FFFFFF; padding: 24px 16px 40px 16px; min-height: 100vh; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { font-size: 21px; font-weight: 700; color: #4E95FF; }
+        .refresh-btn {
+            background-color: #2C2C2E;
+            color: #FFFFFF;
+            border: 1px solid #3A3A3C;
+            padding: 7px 12px;
+            font-size: 13px;
+            border-radius: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+        .refresh-btn:active { background-color: #3A3A3C; }
         
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
         .stat-card { background-color: #1E1E1E; padding: 16px 12px; border-radius: 14px; text-align: center; border: 1px solid #2C2C2E; }
@@ -124,9 +139,11 @@ HTML_TEMPLATE = """
 <body>
     <div class="header">
         <h1>🏋️ 운동 기록 대시보드</h1>
+        <!-- 상단 새로고침 버튼 -->
+        <button class="refresh-btn" onclick="window.location.reload();">🔄 새로고침</button>
     </div>
 
-    <!-- 통계 카드: 이번 주 총 시간 & 총 횟수 -->
+    <!-- 통계 카드 -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="label">이번 주 총 운동</div>
@@ -160,6 +177,28 @@ HTML_TEMPLATE = """
             <div class="empty-log">아직 저장된 운동 기록이 없습니다.</div>
         {% endif %}
     </div>
+
+    <script>
+        // 화면 최상단에서 아래로 당겨서 새로고침 (Pull to Refresh)
+        let startY = 0;
+        window.addEventListener('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].pageY;
+            } else {
+                startY = 0;
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', function(e) {
+            if (startY > 0) {
+                let endY = e.changedTouches[0].pageY;
+                // 아래로 120px 이상 끌어내렸을 때 새로고침
+                if (endY - startY > 120) {
+                    window.location.reload();
+                }
+            }
+        }, { passive: true });
+    </script>
 </body>
 </html>
 """
@@ -174,14 +213,12 @@ def dashboard():
   conn = get_db_connection()
   cursor = conn.cursor()
 
-  # 전체 목록 조회
   cursor.execute(
       "SELECT id, date, start_time, end_time, duration, duration_minutes FROM"
       " gym_logs ORDER BY id DESC"
   )
   logs = cursor.fetchall()
 
-  # 이번 주 월요일 이후 운동 분 합산
   if DATABASE_URL:
     cursor.execute(
         "SELECT SUM(duration_minutes) FROM gym_logs WHERE date >= %s", (monday,)
@@ -246,7 +283,7 @@ def enter_gym():
 
 @app.route("/gym/exit", methods=["POST"])
 def exit_gym():
-  """운동 종료 API: 시간 계산 + 외부 PostgreSQL DB 영구 저장"""
+  """운동 종료 API"""
   global start_time
 
   if start_time is None:
@@ -267,7 +304,6 @@ def exit_gym():
   start_str = start_time.strftime("%H:%M")
   end_str = end_time.strftime("%H:%M")
 
-  # PostgreSQL DB에 영구 저장
   try:
     conn = get_db_connection()
     cursor = conn.cursor()
