@@ -1,6 +1,10 @@
 from flask import Flask, request, jsonify
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import requests
+
+# 한국 시간대 지정 (KST)
+KST = ZoneInfo("Asia/Seoul")
 
 app = Flask(__name__)
 
@@ -24,7 +28,8 @@ def send_telegram(message):
 def enter_gym():
     """헬스장 도착 시 호출되는 API"""
     global start_time
-    start_time = datetime.now()
+    # 한국 시간 적용
+    start_time = datetime.now(KST)
     now_str = start_time.strftime("%H시 %M분")
     
     msg = f"🏋️ [운동 시작]\n도착 시간: {now_str}\n오늘도 득근하세요!"
@@ -40,7 +45,8 @@ def exit_gym():
         send_telegram("⚠️ 운동 시작 기록이 없습니다. 종료 시간만 감지되었습니다.")
         return jsonify({"status": "no start time"}), 400
 
-    end_time = datetime.now()
+    # 한국 시간 적용
+    end_time = datetime.now(KST)
     duration = end_time - start_time
     
     # 시간 및 분 계산
