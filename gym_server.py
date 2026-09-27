@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
+import os
 import sqlite3
 from zoneinfo import ZoneInfo
 from flask import Flask, jsonify, redirect, render_template_string, request, url_for
+import psycopg2
+import psycopg2.extras
 import requests
 
 # 한국 시간대 지정 (KST)
@@ -12,35 +15,53 @@ app = Flask(__name__)
 # --- 설정 정보 ---
 BOT_TOKEN = "8744185006:AAHTQG4HW6bsH1D8PVRTfLOmPzkcGv0Dbbg"
 CHAT_ID = "8376898865"
-DB_NAME = "gym_records.db"
+
+# Render 환경 변수에서 DATABASE_URL 가져오기
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 start_time = None
 
 
+def get_db_connection():
+  """PostgreSQL DB 연결 객체 반환 (미설정 시 로컬 sqlite 대체)"""
+  if DATABASE_URL:
+    return psycopg2.connect(DATABASE_URL)
+  else:
+    return sqlite3.connect("gym_records.db")
+
+
 def init_db():
   """서버 시작 시 운동 기록 테이블 생성"""
-  conn = sqlite3.connect(DB_NAME)
+  conn = get_db_connection()
   cursor = conn.cursor()
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS gym_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
-            start_time TEXT,
-            end_time TEXT,
-            duration TEXT,
-            duration_minutes INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-  # 기존 테이블에 duration_minutes 컬럼이 없을 경우를 대비한 마이그레이션
-  cursor.execute("PRAGMA table_info(gym_logs)")
-  columns = [col[1] for col in cursor.fetchall()]
-  if "duration_minutes" not in columns:
-    cursor.execute(
-        "ALTER TABLE gym_logs ADD COLUMN duration_minutes INTEGER DEFAULT 0"
-    )
+
+  if DATABASE_URL:
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS gym_logs (
+                id SERIAL PRIMARY KEY,
+                date VARCHAR(20),
+                start_time VARCHAR(10),
+                end_time VARCHAR(10),
+                duration VARCHAR(30),
+                duration_minutes INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+  else:
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS gym_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                start_time TEXT,
+                end_time TEXT,
+                duration TEXT,
+                duration_minutes INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
   conn.commit()
+  cursor.close()
   conn.close()
 
 
@@ -146,31 +167,36 @@ HTML_TEMPLATE = """
 
 @app.route("/", methods=["GET"])
 def dashboard():
-  """웹 브라우저 접속 시 기록 목록 및 주간 통계 화면 표시"""
+  """기록 목록 및 주간 통계 화면"""
   now_kst = datetime.now(KST)
-
-  # 이번 주 월요일 계산
   monday = (now_kst - timedelta(days=now_kst.weekday())).strftime("%Y-%m-%d")
 
-  conn = sqlite3.connect(DB_NAME)
+  conn = get_db_connection()
   cursor = conn.cursor()
 
-  # 전체 기록 목록 (최신순)
+  # 전체 목록 조회
   cursor.execute(
       "SELECT id, date, start_time, end_time, duration, duration_minutes FROM"
       " gym_logs ORDER BY id DESC"
   )
   logs = cursor.fetchall()
 
-  # 이번 주(월요일 이후) 총 운동 분(minutes) 합산
-  cursor.execute(
-      "SELECT SUM(duration_minutes) FROM gym_logs WHERE date >= ?", (monday,)
-  )
-  weekly_minutes = cursor.fetchone()[0] or 0
+  # 이번 주 월요일 이후 운동 분 합산
+  if DATABASE_URL:
+    cursor.execute(
+        "SELECT SUM(duration_minutes) FROM gym_logs WHERE date >= %s", (monday,)
+    )
+  else:
+    cursor.execute(
+        "SELECT SUM(duration_minutes) FROM gym_logs WHERE date >= ?", (monday,)
+    )
 
+  result = cursor.fetchone()
+  weekly_minutes = result[0] if result and result[0] else 0
+
+  cursor.close()
   conn.close()
 
-  # 주간 운동 시간 텍스트 변환
   w_hours = weekly_minutes // 60
   w_mins = weekly_minutes % 60
   if w_hours > 0:
@@ -190,20 +216,25 @@ def dashboard():
 
 @app.route("/gym/delete/<int:log_id>", methods=["POST"])
 def delete_log(log_id):
-  """운동 기록 삭제 API"""
-  conn = sqlite3.connect(DB_NAME)
+  """운동 기록 삭제"""
+  conn = get_db_connection()
   cursor = conn.cursor()
-  cursor.execute("DELETE FROM gym_logs WHERE id = ?", (log_id,))
+
+  if DATABASE_URL:
+    cursor.execute("DELETE FROM gym_logs WHERE id = %s", (log_id,))
+  else:
+    cursor.execute("DELETE FROM gym_logs WHERE id = ?", (log_id,))
+
   conn.commit()
+  cursor.close()
   conn.close()
 
-  # 삭제 후 메인 대시보드로 새로고침 리다이렉트
   return redirect(url_for("dashboard"))
 
 
 @app.route("/gym/enter", methods=["POST"])
 def enter_gym():
-  """헬스장 도착 시 호출"""
+  """운동 시작 API"""
   global start_time
   start_time = datetime.now(KST)
   now_str = start_time.strftime("%H시 %M분")
@@ -215,7 +246,7 @@ def enter_gym():
 
 @app.route("/gym/exit", methods=["POST"])
 def exit_gym():
-  """헬스장 이탈 시 호출: 소요 시간 계산 + DB 저장"""
+  """운동 종료 API: 시간 계산 + 외부 PostgreSQL DB 영구 저장"""
   global start_time
 
   if start_time is None:
@@ -236,23 +267,33 @@ def exit_gym():
   start_str = start_time.strftime("%H:%M")
   end_str = end_time.strftime("%H:%M")
 
-  # DB 저장 (총 운동 분 단위 컬럼 추가)
+  # PostgreSQL DB에 영구 저장
   try:
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """
-            INSERT INTO gym_logs (date, start_time, end_time, duration, duration_minutes)
-            VALUES (?, ?, ?, ?, ?)
-        """,
-        (date_str, start_str, end_str, time_text, duration_minutes),
-    )
+    if DATABASE_URL:
+      cursor.execute(
+          """
+                INSERT INTO gym_logs (date, start_time, end_time, duration, duration_minutes)
+                VALUES (%s, %s, %s, %s, %s)
+            """,
+          (date_str, start_str, end_str, time_text, duration_minutes),
+      )
+    else:
+      cursor.execute(
+          """
+                INSERT INTO gym_logs (date, start_time, end_time, duration, duration_minutes)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+          (date_str, start_str, end_str, time_text, duration_minutes),
+      )
     conn.commit()
+    cursor.close()
     conn.close()
   except Exception as e:
     print(f"DB 저장 에러: {e}")
 
-  msg = f"🏆 [운동 완료]\n총 소요 시간: {time_text}\n기록이 저장되었습니다!"
+  msg = f"🏆 [운동 완료]\n총 소요 시간: {time_text}\n기록이 안전하게 저장되었습니다!"
   send_telegram(msg)
 
   start_time = None
