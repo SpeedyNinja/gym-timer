@@ -174,7 +174,9 @@ HTML_TEMPLATE = """
         .level-1 { background-color: rgba(255, 159, 10, 0.25) !important; color: #FFD60A; }
         .level-2 { background-color: rgba(255, 159, 10, 0.55) !important; color: #FFFFFF; }
         .level-3 { background-color: #FF9F0A !important; color: #121212 !important; }
-        .level-3 .day-time { color: #121212; }
+        .level-3 .day-time { color: #121212 !important; }
+        .level-3 .week-day-time { color: #121212 !important; }  /* <- 이 줄 추가 */
+        .level-3 .week-day-name { color: #3A3A3C !important; }  /* 요일 글씨도 잘 보이게 보정 */
 
         .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #E5E5EA; }
         .log-list { display: flex; flex-direction: column; gap: 10px; }
