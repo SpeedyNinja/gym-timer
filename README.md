@@ -63,7 +63,7 @@
 | **Automation** | `iOS Shortcuts` (Geofencing), `Telegram Bot API` | OS 단 지오펜싱 이벤트 트리거 및 실시간 푸시 채널 확보 |
 
 
-## 💡 회고 및 엔지니어링 인사이트 (Retrospective & Insights)
+## 4. 💡 회고 및 엔지니어링 인사이트 (Retrospective & Insights)
 
 ### 1. DBeaver 실습을 통한 '데이터베이스 이해와 활용' 체감
 * **이론에서 실제로, 원본 데이터 검증**: 웹 대시보드 화면 너머 백엔드에서 실제로 어떤 일이 일어나는지 DBeaver를 통해 확인했습니다. 교재나 강의로만 접했던 RDBMS의 2차원 테이블(`gym_logs`) 구조, 행(Row)과 열(Column)에 내가 운동한 기록(`start_time`, `end_time`, `duration_minutes`, `body_part` 등)이 의도한 데이터 규격대로 정합성을 유지하며 적재되는 모습을 직접 눈으로 확인하면서 데이터 모델링과 영속화의 의미를 실감할 수 있었습니다.
