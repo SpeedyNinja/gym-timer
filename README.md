@@ -51,3 +51,10 @@
 > * **비동기 태깅:** 운동 부위 선택 칩 클릭 시 페이지 리로드 없이 Fetch API 비동기 통신을 처리하여 모바일 네이티브급 반응 속도 확보.
 
 </details>
+
+구분,기술 스택,선정 이유
+Backend,"Python, Flask, Gunicorn",경량 웹훅 수신에 특화된 빠른 응답성 및 안정적인 WSGI 서빙
+Database,"PostgreSQL, Psycopg2",컨테이너 재배포 시에도 안전한 영속성 제공 및 인덱싱/집계 용이성
+Frontend,"Vanilla JS, Jinja2, CSS Grid",프레임워크 오버헤드 없는 네이티브 수준의 모바일 다크모드 대시보드
+Infrastructure,Render (Cloud Web Service & DB),CI/CD 파이프라인 자동화 및 클라우드 인프라 구축
+Automation,"iOS Shortcuts (Geofencing), Telegram Bot API",OS 단 지오펜싱 이벤트 트리거 및 실시간 푸시 채널 확보
