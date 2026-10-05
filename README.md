@@ -19,7 +19,7 @@
                                                                      │
                                                                      ▼
                                                           (실시간 시작/완료 푸시 알림)
-'''
+```
 
 ## 2. 핵심 엔지니어링 의사결정 (Engineering Trade-offs & Deep Dive)
 
